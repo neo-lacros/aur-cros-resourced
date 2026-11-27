@@ -1,0 +1,21 @@
+[Unit]
+Description=ChromiumOS Resource Manager daemon
+After=dbus.service
+Requires=dbus.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/resourced
+Restart=on-failure
+RestartSec=1
+
+# resourced manages memory/cpu/cgroup resources and must not be OOM-killed.
+OOMScoreAdjust=-1000
+
+# Capabilities needed for cgroup/cpu/memory management and D-Bus system bus.
+CapabilityBoundingSet=CAP_SYS_NICE CAP_SYS_RESOURCE CAP_DAC_OVERRIDE CAP_CHOWN CAP_SETUID CAP_SETGID
+AmbientCapabilities=CAP_SYS_NICE CAP_SYS_RESOURCE CAP_DAC_OVERRIDE CAP_CHOWN
+NoNewPrivileges=false
+
+[Install]
+WantedBy=multi-user.target

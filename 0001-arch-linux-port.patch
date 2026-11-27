@@ -1,0 +1,76 @@
+diff -ruN a/Cargo.toml b/Cargo.toml
+--- a/Cargo.toml	2026-11-21 14:35:08.973595105 +0000
++++ b/Cargo.toml	2026-11-22 15:36:37.432275667 +0000
+@@ -16,7 +16,7 @@
+ 
+ [features]
+ # Feature chromeos is turned on when building with ebuild.
+-chromeos = ["featured", "metrics_rs"]
++chromeos = []
+ 
+ [dependencies]
+ anyhow = "1.0"
+@@ -25,9 +25,8 @@
+ dbus-tokio = "0.7.5"
+ glob = "0.3"
+ libc = "0.2"
+-libchromeos = { path = "../libchromeos-rs/" } # provided by ebuild
+ log = "0.4"
++syslog = "6"
+-metrics_rs = { version="0.1.0", optional = true }
+ once_cell = "1.7"
+ regex = "1.5"
+ schedqos = { path = "./schedqos" }
+@@ -35,7 +34,6 @@
+ tokio = { version = "1.29.1", features = ["io-util", "macros", "net", "rt", "sync", "time", "rt-multi-thread", "fs"] }
+ system_api = { path = "../system_api" } # provided by ebuild
+ protobuf = "3.2"
+-featured = { version = "0.1.0", optional = true }
+ procfs = "0.15"
+ num_cpus = "1.0.0"
+ lazy_static = "1.4"
+@@ -44,9 +42,6 @@
+ tempfile = "3"
+ tokio = { version = "*", features = ["test-util"] }
+ 
+-[patch.crates-io] # ignored by ebuild
+-featured = {  path = "../../../src/platform2/featured/rust-client" } # ignored by ebuild
+-metrics_rs = { path = "../metrics/rust-client/" } # ignored by ebuild
+ 
+ [[bin]]
+ name = "chromeos-pgmem"
+diff -ruN a/src/main.rs b/src/main.rs
+--- a/src/main.rs	2026-11-21 14:35:09.003809831 +0000
++++ b/src/main.rs	2026-11-22 15:36:55.271047225 +0000
+@@ -4,24 +4,24 @@
+ 
+ use anyhow::bail;
+ use anyhow::Result;
+-use libchromeos::panic_handler::install_memfd_handler;
+-use libchromeos::syslog;
+ use log::error;
+ use log::info;
+ use resourced::cpu_config;
+ use resourced::dbus;
+ use resourced::memory;
++use std::panic;
+ use tokio::runtime::Builder;
+ 
+-const IDENT: &str = "resourced";
+-
+ fn main() -> Result<()> {
+-    install_memfd_handler();
++    panic::set_hook(Box::new(|info| {
++        eprintln!("resourced panic: {info}");
++        error!("resourced panic: {info}");
++    }));
+ 
+     // Initialize syslog. The default log level is info (debug! and trace! are ignored).
+     // You can change the log level with log::set_max_level().
+-    if let Err(err) = syslog::init(IDENT.to_string(), false /* log_to_stderr */) {
+-        bail!("Failed to initiailize syslog: {err}");
++    if let Err(err) = syslog::init_unix(syslog::Facility::LOG_DAEMON, log::LevelFilter::Info) {
++        bail!("Failed to initialize syslog: {err}");
+     }
+ 
+     info!("Starting resourced");

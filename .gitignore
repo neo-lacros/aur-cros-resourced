@@ -1,0 +1,13 @@
+# makepkg build artifacts
+/src/
+/pkg/
+*.pkg.tar.zst
+*.pkg.tar.*
+*.src.tar.*
+makepkg.lock
+
+# Generated or vendored during builds
+/out/
+/cros-adapta/
+__pycache__/
+*.py[cod]
